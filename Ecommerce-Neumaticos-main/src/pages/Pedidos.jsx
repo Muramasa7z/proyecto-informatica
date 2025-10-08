@@ -1,10 +1,10 @@
-// src/pages/User/OrderHistory.jsx
+// src/pages/Pedidos.jsx
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { getUserOrders } from '../../services/orderService';
-import Footer from '../../components/Footer/Footer';
+import { useAuth } from '../context/AuthContext';
+import { getUserOrders } from '../services/orderService';
+import Footer from '../components/Footer/Footer';
 
-const OrderHistory = () => {
+const Pedidos = () => {
   const { currentUser } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +23,7 @@ const OrderHistory = () => {
         setOrders(userOrders);
       } catch (err) {
         console.error('Error cargando pedidos:', err);
-        setError('Error al cargar los pedidos. Por favor intenta más tarde.');
+        setError('Error al cargar los pedidos');
       } finally {
         setLoading(false);
       }
@@ -42,17 +42,6 @@ const OrderHistory = () => {
     }
   };
 
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'pendiente': return 'Pendiente';
-      case 'confirmado': return 'Confirmado';
-      case 'enviado': return 'Enviado';
-      case 'entregado': return 'Entregado';
-      case 'cancelado': return 'Cancelado';
-      default: return status;
-    }
-  };
-
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('es-CL', {
@@ -67,12 +56,12 @@ const OrderHistory = () => {
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-gray-50 pt-32">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Acceso Denegado</h1>
-          <p className="text-xl text-gray-600 mb-8">Debes iniciar sesión para ver tu historial de pedidos.</p>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Inicia sesión para ver tus pedidos</h1>
+          <p className="text-gray-600 mb-8">Necesitas estar registrado para acceder a tu historial de pedidos.</p>
           <a
             href="/login"
-            className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors text-lg font-semibold"
+            className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors text-lg font-semibold inline-block"
           >
             Iniciar Sesión
           </a>
@@ -102,12 +91,6 @@ const OrderHistory = () => {
           <div className="text-center">
             <h1 className="text-2xl font-bold text-red-600 mb-4">Error</h1>
             <p className="text-gray-600">{error}</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
-            >
-              Reintentar
-            </button>
           </div>
         </div>
         <Footer />
@@ -118,20 +101,22 @@ const OrderHistory = () => {
   return (
     <div className="min-h-screen bg-gray-50 pt-32">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 className="text-4xl font-bold text-gray-900 mb-2">Mis Pedidos</h1>
-        <p className="text-gray-600 mb-8">Revisa el historial de todas tus compras</p>
-
+        <h1 className="text-4xl font-bold text-gray-900 text-center mb-12">Mis Pedidos</h1>
+        
         {orders.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-            <div className="text-6xl mb-4">📦</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">No hay pedidos</h2>
-            <p className="text-gray-600 mb-6">Aún no has realizado ninguna compra.</p>
-            <a
-              href="/catalogo"
-              className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-            >
-              Ir al Catálogo
-            </a>
+          <div className="text-center py-16">
+            <div className="bg-white rounded-2xl shadow-lg p-12 max-w-2xl mx-auto">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">No tienes pedidos aún</h2>
+              <p className="text-gray-600 mb-8">
+                Cuando realices tu primera compra, aparecerá aquí tu historial de pedidos.
+              </p>
+              <a
+                href="/catalogo"
+                className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors text-lg font-semibold inline-block"
+              >
+                Explorar Catálogo
+              </a>
+            </div>
           </div>
         ) : (
           <div className="space-y-6">
@@ -150,10 +135,10 @@ const OrderHistory = () => {
                     </div>
                     <div className="flex items-center space-x-4 mt-2 md:mt-0">
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.estado)}`}>
-                        {getStatusText(order.estado)}
+                        {order.estado.charAt(0).toUpperCase() + order.estado.slice(1)}
                       </span>
                       <span className="text-lg font-bold text-green-600">
-                        ${order.total?.toLocaleString() || '0'}
+                        ${order.total.toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -163,7 +148,7 @@ const OrderHistory = () => {
                 <div className="p-6">
                   <h4 className="font-medium text-gray-900 mb-4">Productos</h4>
                   <div className="space-y-3">
-                    {order.items?.map((item, index) => (
+                    {order.items.map((item, index) => (
                       <div key={index} className="flex items-center justify-between py-2">
                         <div className="flex items-center space-x-4">
                           <img
@@ -174,11 +159,10 @@ const OrderHistory = () => {
                           <div>
                             <h5 className="font-medium text-gray-900">{item.nombre}</h5>
                             <p className="text-sm text-gray-600">Cantidad: {item.cantidad}</p>
-                            <p className="text-sm text-gray-600">${item.precio?.toLocaleString()} c/u</p>
                           </div>
                         </div>
                         <span className="font-semibold text-gray-900">
-                          ${((item.precio || 0) * (item.cantidad || 0)).toLocaleString()}
+                          ${(item.precio * item.cantidad).toLocaleString()}
                         </span>
                       </div>
                     ))}
@@ -191,23 +175,18 @@ const OrderHistory = () => {
                     <div>
                       <h5 className="font-medium text-gray-900 mb-2">Dirección de envío</h5>
                       <p className="text-sm text-gray-600">
-                        {order.direccionEnvio?.nombre}<br/>
-                        {order.direccionEnvio?.direccion}<br/>
-                        {order.direccionEnvio?.ciudad && `${order.direccionEnvio.ciudad}, `}
-                        {order.direccionEnvio?.region}<br/>
-                        Tel: {order.direccionEnvio?.telefono}
+                        {order.direccionEnvio.nombre}<br/>
+                        {order.direccionEnvio.direccion}<br/>
+                        {order.direccionEnvio.ciudad && `${order.direccionEnvio.ciudad}, `}
+                        {order.direccionEnvio.region}<br/>
+                        {order.direccionEnvio.telefono}
                       </p>
                     </div>
                     <div>
-                      <h5 className="font-medium text-gray-900 mb-2">Información de pago</h5>
+                      <h5 className="font-medium text-gray-900 mb-2">Método de pago</h5>
                       <p className="text-sm text-gray-600 capitalize">
-                        {order.metodoPago === 'webpay' ? 'Webpay' : order.metodoPago}
+                        {order.metodoPago}
                       </p>
-                      {order.transaccionId && (
-                        <p className="text-sm text-gray-600">
-                          ID: {order.transaccionId}
-                        </p>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -221,4 +200,4 @@ const OrderHistory = () => {
   );
 };
 
-export default OrderHistory;
+export default Pedidos;

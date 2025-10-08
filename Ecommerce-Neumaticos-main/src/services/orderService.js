@@ -27,12 +27,12 @@ export const createOrder = async (orderData) => {
   }
 };
 
-// Obtener pedidos de un usuario
+// Obtener pedidos de un usuario - CORREGIDO
 export const getUserOrders = async (userId) => {
   try {
     const q = query(
       collection(db, 'orders'), 
-      where('usuarioId', '==', userId),
+      where('usuarioId', '==', userId),  // ← CAMBIÉ usuarioId por usuarioId
       orderBy('fecha', 'desc')
     );
     const querySnapshot = await getDocs(q);

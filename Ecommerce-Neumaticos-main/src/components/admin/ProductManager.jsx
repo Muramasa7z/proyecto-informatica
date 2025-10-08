@@ -1,10 +1,14 @@
 // src/components/admin/ProductManager.jsx
 import React, { useState, useEffect } from 'react';
 import { getProducts, addProduct, updateProduct, deleteProduct } from '../../services/productService';
+import { storage } from '../../firebase/config';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 const ProductManager = () => {
   const [products, setProducts] = useState([]);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [imageFile, setImageFile] = useState(null); // Para manejar el archivo seleccionado
   const [formData, setFormData] = useState({
     nombre: '',
     precio: '',
@@ -26,6 +30,71 @@ const ProductManager = () => {
     loadProducts();
   }, []);
 
+  // Subir imagen a Firebase Storage
+  const uploadImage = async (file) => {
+    try {
+      setUploading(true);
+      
+      // Crear referencia única para la imagen
+      const timestamp = Date.now();
+      const fileName = `product_${timestamp}_${file.name}`;
+      const storageRef = ref(storage, `products/${fileName}`);
+      
+      // Subir archivo
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      
+      return downloadURL;
+    } catch (error) {
+      console.error('Error subiendo imagen:', error);
+      throw error;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Eliminar imagen vieja de Storage (al editar)
+  const deleteOldImage = async (imageUrl) => {
+    try {
+      // Extraer la referencia del URL de Firebase Storage
+      if (imageUrl.includes('firebasestorage.googleapis.com')) {
+        const imageRef = ref(storage, imageUrl);
+        await deleteObject(imageRef);
+        console.log('✅ Imagen anterior eliminada');
+      }
+    } catch (error) {
+      console.warn('No se pudo eliminar la imagen anterior:', error);
+      // No lanzar error, continuar con la subida
+    }
+  };
+
+  // Manejar cambio de archivo de imagen
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validar tipo de archivo
+    if (!file.type.startsWith('image/')) {
+      alert('❌ Por favor selecciona un archivo de imagen válido (JPEG, PNG, etc.)');
+      return;
+    }
+
+    // Validar tamaño (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('❌ La imagen debe ser menor a 5MB');
+      return;
+    }
+
+    setImageFile(file);
+    
+    // Mostrar vista previa local
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setFormData(prev => ({ ...prev, imagen: e.target.result }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Manejar cambios en el formulario
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -39,8 +108,29 @@ const ProductManager = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    let finalImageUrl = formData.imagen;
+
+    // Si hay un nuevo archivo seleccionado, subirlo
+    if (imageFile) {
+      try {
+        finalImageUrl = await uploadImage(imageFile);
+        
+        // Si estamos editando y hay una imagen anterior, eliminarla
+        if (editingProduct && editingProduct.imagen && editingProduct.imagen !== finalImageUrl) {
+          await deleteOldImage(editingProduct.imagen);
+        }
+      } catch (error) {
+        alert('❌ Error subiendo imagen: ' + error.message);
+        return;
+      }
+    } else if (!formData.imagen) {
+      alert('❌ Por favor selecciona una imagen para el producto');
+      return;
+    }
+
     const productData = {
       ...formData,
+      imagen: finalImageUrl,
       precio: Number(formData.precio),
       stock: Number(formData.stock)
     };
@@ -53,23 +143,29 @@ const ProductManager = () => {
       }
       
       // Limpiar formulario y recargar productos
-      setFormData({
-        nombre: '',
-        precio: '',
-        categoria: 'automovil',
-        marca: '',
-        imagen: '',
-        stock: '',
-        descripcion: '',
-        enOferta: false
-      });
-      setEditingProduct(null);
+      resetForm();
       await loadProducts();
       
-      alert(editingProduct ? 'Producto actualizado!' : 'Producto agregado!');
+      alert(editingProduct ? '✅ Producto actualizado!' : '✅ Producto agregado!');
     } catch (error) {
-      alert('Error: ' + error.message);
+      alert('❌ Error: ' + error.message);
     }
+  };
+
+  // Resetear formulario
+  const resetForm = () => {
+    setFormData({
+      nombre: '',
+      precio: '',
+      categoria: 'automovil',
+      marca: '',
+      imagen: '',
+      stock: '',
+      descripcion: '',
+      enOferta: false
+    });
+    setEditingProduct(null);
+    setImageFile(null);
   };
 
   // Editar producto
@@ -85,19 +181,32 @@ const ProductManager = () => {
       descripcion: product.descripcion,
       enOferta: product.enOferta
     });
+    setImageFile(null); // Resetear archivo seleccionado
   };
 
-  // Eliminar producto
-  const handleDelete = async (id) => {
-    if (confirm('¿Estás seguro de eliminar este producto?')) {
+  // Eliminar producto (incluyendo su imagen)
+  const handleDelete = async (product) => {
+    if (confirm(`¿Estás seguro de eliminar el producto "${product.nombre}"?`)) {
       try {
-        await deleteProduct(id);
+        // Eliminar imagen del storage si existe
+        if (product.imagen && product.imagen.includes('firebasestorage.googleapis.com')) {
+          await deleteOldImage(product.imagen);
+        }
+        
+        // Eliminar producto de Firestore
+        await deleteProduct(product.id);
         await loadProducts();
-        alert('Producto eliminado!');
+        alert('✅ Producto eliminado!');
       } catch (error) {
-        alert('Error: ' + error.message);
+        alert('❌ Error: ' + error.message);
       }
     }
+  };
+
+  // Quitar imagen seleccionada
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setFormData(prev => ({ ...prev, imagen: '' }));
   };
 
   return (
@@ -107,7 +216,7 @@ const ProductManager = () => {
       {/* Formulario */}
       <form onSubmit={handleSubmit} className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Nombre</label>
+          <label className="block text-sm font-medium mb-1">Nombre *</label>
           <input
             type="text"
             name="nombre"
@@ -119,7 +228,7 @@ const ProductManager = () => {
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-1">Precio</label>
+          <label className="block text-sm font-medium mb-1">Precio *</label>
           <input
             type="number"
             name="precio"
@@ -127,11 +236,12 @@ const ProductManager = () => {
             onChange={handleInputChange}
             className="w-full border p-2 rounded"
             required
+            min="0"
           />
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-1">Categoría</label>
+          <label className="block text-sm font-medium mb-1">Categoría *</label>
           <select
             name="categoria"
             value={formData.categoria}
@@ -141,11 +251,12 @@ const ProductManager = () => {
             <option value="automovil">Automóvil</option>
             <option value="camioneta">Camioneta</option>
             <option value="moto">Moto</option>
+            <option value="camion">Camión</option>
           </select>
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-1">Marca</label>
+          <label className="block text-sm font-medium mb-1">Marca *</label>
           <input
             type="text"
             name="marca"
@@ -156,20 +267,57 @@ const ProductManager = () => {
           />
         </div>
         
-        <div>
-          <label className="block text-sm font-medium mb-1">URL Imagen</label>
-          <input
-            type="url"
-            name="imagen"
-            value={formData.imagen}
-            onChange={handleInputChange}
-            className="w-full border p-2 rounded"
-            required
-          />
+        <div className="md:col-span-2">
+          <label className="block text-sm font-medium mb-1">Imagen del Producto *</label>
+          <div className="space-y-3">
+            {/* Input de archivo */}
+            <div className="flex items-center space-x-4">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="flex-1 border p-2 rounded"
+                disabled={uploading}
+              />
+              {formData.imagen && (
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="bg-red-500 text-white px-3 py-2 rounded hover:bg-red-600 text-sm"
+                >
+                  Quitar
+                </button>
+              )}
+            </div>
+            
+            {uploading && (
+              <div className="text-blue-600 text-sm flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                Subiendo imagen...
+              </div>
+            )}
+            
+            {/* Vista previa */}
+            {formData.imagen && (
+              <div className="mt-2">
+                <p className="text-sm text-gray-600 mb-2">
+                  {editingProduct && !imageFile ? 'Imagen actual:' : 'Vista previa:'}
+                </p>
+                <img 
+                  src={formData.imagen} 
+                  alt="Vista previa" 
+                  className="w-32 h-32 object-cover rounded border shadow-sm"
+                />
+                <p className="text-green-600 text-sm mt-1">
+                  ✅ {imageFile ? 'Nueva imagen lista' : 'Imagen cargada'}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
         
         <div>
-          <label className="block text-sm font-medium mb-1">Stock</label>
+          <label className="block text-sm font-medium mb-1">Stock *</label>
           <input
             type="number"
             name="stock"
@@ -177,6 +325,7 @@ const ProductManager = () => {
             onChange={handleInputChange}
             className="w-full border p-2 rounded"
             required
+            min="0"
           />
         </div>
         
@@ -188,6 +337,7 @@ const ProductManager = () => {
             onChange={handleInputChange}
             className="w-full border p-2 rounded"
             rows="3"
+            placeholder="Descripción del producto..."
           />
         </div>
         
@@ -202,30 +352,23 @@ const ProductManager = () => {
           <label className="text-sm font-medium">En oferta</label>
         </div>
         
-        <div className="md:col-span-2">
+        <div className="md:col-span-2 flex space-x-4">
           <button
             type="submit"
-            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
+            disabled={uploading}
+            className={`px-6 py-2 rounded font-semibold ${
+              uploading 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
           >
-            {editingProduct ? 'Actualizar Producto' : 'Agregar Producto'}
+            {uploading ? 'Subiendo...' : editingProduct ? 'Actualizar Producto' : 'Agregar Producto'}
           </button>
           {editingProduct && (
             <button
               type="button"
-              onClick={() => {
-                setEditingProduct(null);
-                setFormData({
-                  nombre: '',
-                  precio: '',
-                  categoria: 'automovil',
-                  marca: '',
-                  imagen: '',
-                  stock: '',
-                  descripcion: '',
-                  enOferta: false
-                });
-              }}
-              className="ml-4 bg-gray-600 text-white px-6 py-2 rounded hover:bg-gray-700"
+              onClick={resetForm}
+              className="bg-gray-600 text-white px-6 py-2 rounded hover:bg-gray-700"
             >
               Cancelar
             </button>
@@ -234,33 +377,52 @@ const ProductManager = () => {
       </form>
 
       {/* Lista de productos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {products.map(product => (
-          <div key={product.id} className="border rounded-lg p-4">
-            <img 
-              src={product.imagen} 
-              alt={product.nombre}
-              className="w-full h-32 object-cover mb-2 rounded"
-            />
-            <h3 className="font-semibold">{product.nombre}</h3>
-            <p className="text-green-600 font-bold">${product.precio.toLocaleString()}</p>
-            <p className="text-sm text-gray-600">Stock: {product.stock}</p>
-            <div className="flex space-x-2 mt-2">
-              <button
-                onClick={() => handleEdit(product)}
-                className="bg-yellow-500 text-white px-3 py-1 rounded text-sm"
-              >
-                Editar
-              </button>
-              <button
-                onClick={() => handleDelete(product.id)}
-                className="bg-red-500 text-white px-3 py-1 rounded text-sm"
-              >
-                Eliminar
-              </button>
-            </div>
+      <div>
+        <h3 className="text-xl font-semibold mb-4">
+          Productos ({products.length})
+        </h3>
+        
+        {products.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            No hay productos registrados
           </div>
-        ))}
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {products.map(product => (
+              <div key={product.id} className="border rounded-lg p-4 hover:shadow-lg transition-shadow">
+                <img 
+                  src={product.imagen} 
+                  alt={product.nombre}
+                  className="w-full h-40 object-cover mb-3 rounded"
+                />
+                <h3 className="font-semibold text-lg mb-1">{product.nombre}</h3>
+                <p className="text-green-600 font-bold text-xl">${product.precio?.toLocaleString()}</p>
+                <div className="text-sm text-gray-600 space-y-1 mt-2">
+                  <p>Marca: {product.marca}</p>
+                  <p>Categoría: {product.categoria}</p>
+                  <p>Stock: {product.stock}</p>
+                  {product.enOferta && (
+                    <span className="bg-red-500 text-white px-2 py-1 rounded text-xs">EN OFERTA</span>
+                  )}
+                </div>
+                <div className="flex space-x-2 mt-3">
+                  <button
+                    onClick={() => handleEdit(product)}
+                    className="bg-yellow-500 text-white px-3 py-1 rounded text-sm hover:bg-yellow-600"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(product)}
+                    className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
