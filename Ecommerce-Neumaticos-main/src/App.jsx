@@ -7,7 +7,7 @@ import Hero from "./components/Hero/Hero";
 import Ofertas from "./components/Ofertas/Ofertas";
 import Footer from "./components/Footer/Footer";
 
-// Páginas adicionales
+// Páginas adicionales SI
 import QuienesSomos from "./pages/QuienesSomos";
 import Contacto from "./pages/Contacto";
 import Catalogo from "./pages/Catalogo";
