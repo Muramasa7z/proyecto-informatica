@@ -1,23 +1,33 @@
 // src/components/WhatsAppButton/WhatsAppButton.jsx
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 
 const WhatsAppButton = () => {
-  // Configuración - REEMPLAZA CON TU NÚMERO Y MENSAJE
-  const phoneNumber = "56912345678"; // ← REEMPLAZA con tu número SIN + ni espacios
-  const defaultMessage = "Hola! Me interesa obtener más información sobre sus neumáticos."; // ← Mensaje por defecto
+  const location = useLocation();
+  
+  // Ocultar en estas rutas
+  const hiddenRoutes = ['/login', '/register', '/admin'];
+  const shouldHide = hiddenRoutes.some(route => location.pathname.startsWith(route));
+  
+  // Si está en una ruta oculta, no mostrar el botón
+  if (shouldHide) {
+    return null;
+  }
 
-  // Generar URL de WhatsApp
+  // ⚠️ REEMPLAZA CON TU NÚMERO REAL
+  const phoneNumber = "56912345678";
+  const defaultMessage = "¡Hola! Vi tu tienda de neumáticos y me gustaría obtener más información.";
+
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(defaultMessage)}`;
 
   const handleClick = () => {
-    // Abrir WhatsApp en nueva pestaña
     window.open(whatsappUrl, '_blank');
   };
 
   return (
     <button
       onClick={handleClick}
-      className="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl"
+      className="fixed bottom-6 right-6 z-40 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl"
       aria-label="Contactar por WhatsApp"
     >
       <svg 

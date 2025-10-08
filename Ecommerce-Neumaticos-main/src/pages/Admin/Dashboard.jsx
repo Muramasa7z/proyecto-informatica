@@ -1,16 +1,19 @@
-// src/pages/Admin/Dashboard.jsx
+// src/pages/Admin/Dashboard.jsx - VERSIÓN CORREGIDA
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { getAllOrders, updateOrderStatus } from '../../services/orderService';
+import { getProducts } from '../../services/productService';
 import ProductManager from '../../components/admin/ProductManager';
+import AdminStats from '../../components/admin/AdminStats';
 import Footer from '../../components/Footer/Footer';
 
 const Dashboard = () => {
   const { currentUser, isAdmin, logout } = useAuth();
   const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('orders');
+  const [activeTab, setActiveTab] = useState('stats');
 
   // Protección - bloquear si no es admin
   if (!isAdmin) {
@@ -18,27 +21,30 @@ const Dashboard = () => {
   }
 
   useEffect(() => {
-    const loadOrders = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
-        const allOrders = await getAllOrders();
-        setOrders(allOrders);
+        const [ordersData, productsData] = await Promise.all([
+          getAllOrders(),
+          getProducts()
+        ]);
+        setOrders(ordersData);
+        setProducts(productsData);
       } catch (error) {
-        console.error('Error cargando pedidos:', error);
+        console.error('Error cargando datos:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    if (activeTab === 'orders') {
-      loadOrders();
+    if (activeTab === 'stats' || activeTab === 'orders') {
+      loadData();
     }
   }, [activeTab]);
 
   const handleStatusUpdate = async (orderId, newStatus) => {
     try {
       await updateOrderStatus(orderId, newStatus);
-      // Actualizar estado local
       setOrders(orders.map(order => 
         order.id === orderId ? { ...order, estado: newStatus } : order
       ));
@@ -99,7 +105,7 @@ const Dashboard = () => {
                 Panel de Administración
               </h1>
               <p className="text-gray-600">
-                Hola, {currentUser?.email} - Gestiona pedidos y productos
+                Hola, {currentUser?.email} - Gestiona tu negocio
               </p>
             </div>
             <button
@@ -116,6 +122,16 @@ const Dashboard = () => {
           <div className="border-b border-gray-200">
             <nav className="-mb-px flex space-x-8">
               <button
+                onClick={() => setActiveTab('stats')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'stats'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                📊 Estadísticas
+              </button>
+              <button
                 onClick={() => setActiveTab('orders')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'orders'
@@ -123,7 +139,7 @@ const Dashboard = () => {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Gestión de Pedidos
+                📦 Gestión de Pedidos
               </button>
               <button
                 onClick={() => setActiveTab('products')}
@@ -133,13 +149,25 @@ const Dashboard = () => {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Gestión de Productos
+                🛍️ Gestión de Productos
               </button>
             </nav>
           </div>
         </div>
 
         {/* Contenido de Tabs */}
+        {activeTab === 'stats' && (
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              </div>
+            ) : (
+              <AdminStats orders={orders} products={products} />
+            )}
+          </div>
+        )}
+
         {activeTab === 'orders' && (
           <div className="bg-white rounded-2xl shadow-lg p-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Todos los Pedidos</h2>

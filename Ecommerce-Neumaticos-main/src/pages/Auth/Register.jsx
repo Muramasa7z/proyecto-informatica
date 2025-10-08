@@ -53,8 +53,30 @@ const Register = () => {
     setLoading(false);
   };
 
+  const handleGoBack = () => {
+    // Si hay una página anterior, volver, sino ir al inicio
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900 relative overflow-hidden">
+      {/* Botón Volver/Inicio */}
+      <div className="absolute top-4 left-4 sm:top-8 sm:left-8 z-20">
+        <button
+          onClick={handleGoBack}
+          className="flex items-center gap-2 text-white/80 hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-white/10 backdrop-blur-sm border border-white/20"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span className="font-medium">Volver atrás</span>
+        </button>
+      </div>
+
       {/* Fondo con efecto */}
       <div 
         className="absolute inset-0"
@@ -203,6 +225,7 @@ const Register = () => {
             </Link>
           </p>
         </div>
+        
 
         {/* Footer */}
         <div className="mt-5 text-center">

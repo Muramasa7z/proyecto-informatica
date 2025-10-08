@@ -5,7 +5,8 @@ import {
   signOut, 
   onAuthStateChanged,
   createUserWithEmailAndPassword,
-  updateProfile
+  updateProfile,
+  sendPasswordResetEmail  // ← NUEVO IMPORT
 } from 'firebase/auth';
 import { auth, db } from '../firebase/config';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -67,6 +68,17 @@ export const AuthProvider = ({ children }) => {
     return signOut(auth);
   };
 
+  // NUEVA FUNCIÓN: Restablecer contraseña
+  const resetPassword = async (email) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      return true;
+    } catch (error) {
+      console.error('Error enviando email de restablecimiento:', error);
+      throw error;
+    }
+  };
+
   const loadUserData = async (user) => {
     if (user) {
       try {
@@ -114,6 +126,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    resetPassword,  // ← NUEVA FUNCIÓN EN EL VALUE
     isAdmin
   };
 

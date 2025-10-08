@@ -7,6 +7,7 @@ import Hero from "./components/Hero/Hero";
 import Ofertas from "./components/Ofertas/Ofertas";
 import Footer from "./components/Footer/Footer";
 import WhatsAppButton from './components/WhatsAppButton/WhatsAppButton';
+import ForgotPassword from "./pages/Auth/ForgotPassword";
 
 // Páginas adicionales SI
 import QuienesSomos from "./pages/QuienesSomos";
@@ -59,6 +60,7 @@ function App() {
             {/* Rutas SIN Navbar */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} /> {/* ← NUEVA RUTA */}
             
             {/* Ruta ADMIN con protección */}
             <Route 
