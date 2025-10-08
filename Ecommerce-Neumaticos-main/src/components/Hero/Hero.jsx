@@ -15,8 +15,8 @@ const Hero = () => {
   };
 
   return (
-    <section style={bgImagen} className="min-h-screen py-15">
-      <div className="p-10 grid grid-cols-1 md:grid-cols-2 -mt-10">
+    <section style={bgImagen} className="min-h-screen py-15 pt-32">
+      <div className="p-10 grid grid-cols-1 md:grid-cols-2">
         {/* textos descriptivos */}
         <div className="p-10 sm:p-10 md:p-15 lg:p-30 xl:p-36">
           <motion.img
@@ -28,7 +28,7 @@ const Hero = () => {
             animate="animate"
           />
           <motion.p
-            className="py-12 text-gray-900"
+            className="py-12 text-gray-900 text-lg leading-relaxed"
             variants={slipeUp(0.3)}
             initial="initial"
             animate="animate"
@@ -36,30 +36,30 @@ const Hero = () => {
             Bienvenido a nuestra tienda. Encuentra la mejor selección de productos con calidad garantizada y ofertas exclusivas.
           </motion.p>
           <motion.div
-            className="flex justify-center gap-4"
+            className="flex justify-center gap-6"
             variants={slipeUp(1)}
             initial="initial"
             animate="animate"
           >
-            <a href="#ofertas" className="bg-slate-500 py-2 px-12 rounded-3xl text-slate-50 hover:bg-slate-300 transition-all duration-300 items-center cursor-pointer">
+            <a href="/catalogo" className="bg-blue-600 py-3 px-8 rounded-2xl text-white hover:bg-blue-700 transition-all duration-300 items-center cursor-pointer text-lg font-semibold shadow-lg hover:shadow-xl">
               Ver Catálogo
               <i className="bi bi-card-text text-xl ml-2"></i>
             </a>
-            <a href="#contacto" className="text-gray-900 flex items-center cursor-pointer">
-              Ver Ofertas
-              <i className="bi bi-cash-coin text-xl ml-2"></i>
+            <a href="/contacto" className="text-gray-900 flex items-center cursor-pointer text-lg font-semibold hover:text-blue-600 transition-all duration-300">
+              Contáctanos
+              <i className="bi bi-chat-dots text-xl ml-2"></i>
             </a>
           </motion.div>
         </div>
 
         {/* imagen */}
         <motion.div
-          className="-mt-14 sm:p-10 md:p-15 lg:p-30 xl:p-36"
+          className="sm:p-10 md:p-15 lg:p-30 xl:p-36"
           variants={slipeInFromSide("right", 0.5)}
           initial="initial"
           animate="animate"
         >
-          <img src={Neuma} alt="Imagen de referencia" />
+          <img src={Neuma} alt="Imagen de referencia" className="max-w-full h-auto" />
         </motion.div>
       </div>
     </section>
