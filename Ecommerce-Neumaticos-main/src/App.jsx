@@ -6,6 +6,7 @@ import Navbar from "./components/Navbar/Navbar";
 import Hero from "./components/Hero/Hero";
 import Ofertas from "./components/Ofertas/Ofertas";
 import Footer from "./components/Footer/Footer";
+import WhatsAppButton from './components/WhatsAppButton/WhatsAppButton';
 
 // Páginas adicionales SI
 import QuienesSomos from "./pages/QuienesSomos";
@@ -69,6 +70,7 @@ function App() {
               } 
             />
           </Routes>
+           <WhatsAppButton /> {/* ← AGREGA ESTA LÍNEA */}
         </Router>
       </CartProvider>
     </AuthProvider>
